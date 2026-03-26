@@ -5,8 +5,6 @@ import * as THREE from 'three'
 import AlamoModel from './components/AlamoModel'
 import GroundPlane from './components/GroundPlane'
 import Particles from './components/Particles'
-import AtmosphericHaze from './components/AtmosphericHaze'
-import Smoke from './components/Smoke'
 
 // smoothstep easing
 function smoothstep(t) {
@@ -67,29 +65,28 @@ function CameraController({ scrollRef, isMobile }) {
 export default function Scene({ scrollRef, isMobile = false }) {
   return (
     <>
-      {/* Transparent background -- CSS bg layer shows through */}
+      {/* Pure black background -- crisp, high contrast Tron look */}
       <color attach="background" args={['#000000']} />
-      <fogExp2 attach="fog" args={['#0a0806', 0.012]} />
+      {/* NO fog -- clean, sharp, high contrast */}
 
       <CameraController scrollRef={scrollRef} isMobile={isMobile} />
       <AlamoModel scrollRef={scrollRef} />
       <GroundPlane scrollRef={scrollRef} />
       <Particles isMobile={isMobile} scrollRef={scrollRef} />
-      <AtmosphericHaze isMobile={isMobile} />
-      <Smoke isMobile={isMobile} scrollRef={scrollRef} />
+      {/* Removed AtmosphericHaze and Smoke -- they were killing the crisp Tron look */}
 
       <EffectComposer>
         <Bloom
-          intensity={isMobile ? 1.0 : 1.8}
-          luminanceThreshold={isMobile ? 0.18 : 0.15}
-          luminanceSmoothing={0.6}
+          intensity={isMobile ? 1.5 : 2.5}
+          luminanceThreshold={isMobile ? 0.12 : 0.08}
+          luminanceSmoothing={0.4}
           mipmapBlur={!isMobile}
-          radius={isMobile ? 0.4 : 0.6}
+          radius={isMobile ? 0.5 : 0.8}
         />
         <Vignette
           eskil={false}
-          offset={0.15}
-          darkness={0.9}
+          offset={0.2}
+          darkness={0.7}
         />
       </EffectComposer>
     </>

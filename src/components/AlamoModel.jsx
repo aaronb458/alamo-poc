@@ -4,13 +4,11 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 
 // ════════════════════════════════════════════════════════════════════════════
-// WIREFRAME SHADER -- Tron-style glowing wireframe using EdgesGeometry overlay
-// The wireframe layer sits on top of the model and fades out as user scrolls.
-// The textured layer fades IN simultaneously.
+// WIREFRAME SHADER -- Tron-style glowing wireframe with ORANGE edges + BLUE surfaces
+// Orange/amber glowing edges, blue/cyan data grid on faces, pure black bg
 // ════════════════════════════════════════════════════════════════════════════
 
-// Surface shader -- holographic skin with fresnel edge glow
-// This represents the "wireframe phase" of the model
+// Surface shader -- blue/cyan data grid texture on faces
 const WIRE_SURFACE_VERT = `
   varying vec3 vNormal;
   varying vec3 vViewPosition;
@@ -37,33 +35,53 @@ const WIRE_SURFACE_FRAG = `
     vec3 viewDir = normalize(vViewPosition);
     vec3 n = normalize(vNormal);
     float fresnel = 1.0 - abs(dot(n, viewDir));
-    float fresnelEdge = pow(fresnel, 2.0);
+    float fresnelEdge = pow(fresnel, 2.5);
 
-    // Warm amber/gold colors from the palette
-    vec3 base   = vec3(0.005, 0.004, 0.002);
-    vec3 amber  = vec3(0.83, 0.58, 0.23);  // #D4943A
-    vec3 gold   = vec3(0.77, 0.64, 0.40);  // #C4A265
+    // Blue/cyan data grid on surfaces
+    vec3 cyan    = vec3(0.0, 0.75, 1.0);   // #00BFFF
+    vec3 blue    = vec3(0.0, 0.53, 1.0);   // #0088FF
+    vec3 deepBlue = vec3(0.0, 0.15, 0.35);
 
-    vec3 col = base;
+    // Create a data grid pattern using world position
+    float gridScale = 2.0;
+    vec2 grid1 = abs(fract(vWorldPosition.xz * gridScale) - 0.5);
+    vec2 grid2 = abs(fract(vWorldPosition.xy * gridScale) - 0.5);
+    vec2 grid3 = abs(fract(vWorldPosition.yz * gridScale) - 0.5);
 
-    // Amber fresnel edge glow -- pulsing
-    float pulse = sin(time * 1.2) * 0.15 + 0.85;
-    col += amber * fresnelEdge * 2.2 * pulse;
+    // Triplanar blending for grid
+    vec3 blending = abs(n);
+    blending = normalize(max(blending, 0.00001));
 
-    // Gold accent
-    col += gold * pow(fresnel, 3.0) * 0.5;
+    float gx = min(grid1.x, grid1.y) * blending.y;
+    float gy = min(grid2.x, grid2.y) * blending.z;
+    float gz = min(grid3.x, grid3.y) * blending.x;
+    float gridVal = gx + gy + gz;
+    float gridLine = 1.0 - smoothstep(0.0, 0.06, gridVal);
 
-    // Height gradient
-    float heightGrad = smoothstep(-0.5, 5.0, vWorldPosition.y) * 0.02;
-    col += gold * heightGrad;
+    // Scanning line effect
+    float scanLine = sin(vWorldPosition.y * 8.0 - time * 2.0) * 0.5 + 0.5;
+    scanLine = pow(scanLine, 8.0) * 0.3;
 
-    float alpha = (0.08 + fresnelEdge * 0.7) * uWireframeOpacity;
+    // Base surface color -- deep blue with grid overlay
+    vec3 col = deepBlue * 0.3;
+    col += cyan * gridLine * 0.5;
+    col += blue * scanLine * 0.2;
+
+    // Fresnel edge glow in orange/amber (transition color between surface and edges)
+    vec3 amber = vec3(1.0, 0.42, 0.0);  // #FF6B00
+    col += amber * fresnelEdge * 0.6;
+
+    // Subtle pulse
+    float pulse = sin(time * 1.2) * 0.1 + 0.9;
+    col *= pulse;
+
+    float alpha = (0.15 + gridLine * 0.35 + fresnelEdge * 0.5) * uWireframeOpacity;
 
     gl_FragColor = vec4(col, alpha);
   }
 `
 
-// Edge line shader -- the glowing wireframe lines
+// Edge line shader -- BRIGHT ORANGE/AMBER glowing wireframe lines
 const EDGE_VERT = `
   void main() {
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
@@ -76,13 +94,14 @@ const EDGE_FRAG = `
   uniform vec3 uLineColor;
 
   void main() {
-    float pulse = sin(time * 1.5) * 0.10 + 0.90;
-    vec3 col = uLineColor * 1.2 * pulse;
-    gl_FragColor = vec4(col, uWireframeOpacity * 0.85);
+    float pulse = sin(time * 1.5) * 0.08 + 0.92;
+    // Bright orange with extra intensity for bloom to catch
+    vec3 col = uLineColor * 1.8 * pulse;
+    gl_FragColor = vec4(col, uWireframeOpacity * 0.95);
   }
 `
 
-// Outline pass (back-face hull for silhouette)
+// Outline pass (back-face hull for orange silhouette glow)
 const OUTLINE_VERT = `
   uniform float outlineWidth;
 
@@ -98,10 +117,10 @@ const OUTLINE_FRAG = `
 
   void main() {
     float pulse = sin(time * 0.8) * 0.06 + 0.94;
-    vec3 amber = vec3(0.83, 0.58, 0.23);
-    vec3 gold  = vec3(0.77, 0.64, 0.40);
-    vec3 col = mix(amber, gold, 0.3) * 1.2 * pulse;
-    gl_FragColor = vec4(col, uWireframeOpacity * 0.6);
+    vec3 orange = vec3(1.0, 0.42, 0.0);   // #FF6B00
+    vec3 amber  = vec3(1.0, 0.65, 0.0);   // #FFA500
+    vec3 col = mix(orange, amber, 0.3) * 1.4 * pulse;
+    gl_FragColor = vec4(col, uWireframeOpacity * 0.5);
   }
 `
 
@@ -241,7 +260,8 @@ export default function AlamoModel({ scrollRef }) {
   const {
     wireSurfaceMat, edgeMat, outlineMat, texturedMat
   } = useMemo(() => {
-    const lineColor = new THREE.Color(0xC4A265)
+    // BRIGHT ORANGE for wireframe edges
+    const lineColor = new THREE.Color(0xFF6B00)
 
     const wireSurfaceMat = new THREE.ShaderMaterial({
       vertexShader: WIRE_SURFACE_VERT,
@@ -350,19 +370,19 @@ export default function AlamoModel({ scrollRef }) {
     <group scale={groupScale} position={groupOffset}>
       {geos.map((geo, i) => (
         <group key={i}>
-          {/* Layer 1: Wireframe holographic surface */}
+          {/* Layer 1: Blue/cyan data grid surface */}
           <mesh
             geometry={geo}
             material={wireSurfaceMat}
             renderOrder={2}
           />
-          {/* Layer 2: Edge wireframe lines */}
+          {/* Layer 2: ORANGE edge wireframe lines */}
           <lineSegments
             geometry={edgeGeos[i]}
             material={edgeMat}
             renderOrder={3}
           />
-          {/* Layer 3: Back-face outline hull */}
+          {/* Layer 3: Orange back-face outline hull */}
           <mesh
             geometry={geo}
             material={outlineMat}

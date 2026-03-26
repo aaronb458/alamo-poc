@@ -25,14 +25,14 @@ function LoadingScreen({ progress }) {
       left: 0,
       width: '100%',
       height: '100vh',
-      background: '#0a0806',
+      background: '#000000',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 9999,
       fontFamily: "'Oswald', 'Bebas Neue', Impact, sans-serif",
-      color: '#C4A265',
+      color: '#FF6B00',
     }}>
       <div style={{
         fontSize: 'clamp(1rem, 2vw, 1.4rem)',
@@ -46,7 +46,7 @@ function LoadingScreen({ progress }) {
       <div style={{
         width: '200px',
         height: '2px',
-        background: 'rgba(196, 162, 101, 0.15)',
+        background: 'rgba(255, 107, 0, 0.15)',
         position: 'relative',
         overflow: 'hidden',
       }}>
@@ -56,7 +56,7 @@ function LoadingScreen({ progress }) {
           left: 0,
           height: '100%',
           width: `${progress}%`,
-          background: 'linear-gradient(90deg, #C4A265, #D4943A)',
+          background: 'linear-gradient(90deg, #FF6B00, #FFA500)',
           transition: 'width 0.3s ease',
         }} />
       </div>

@@ -2,11 +2,10 @@ import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
-const DUST_COUNT = 4000
-const EMBER_COUNT = 1200
-const FIREFLY_COUNT = 150
+const EMBER_COUNT = 1500
+const FIREFLY_COUNT = 200
 
-// ── Ember/spark shader -- warm orange dots that rise slowly ─────────────
+// ── Ember/spark shader -- warm ORANGE/AMBER sparks rising ─────────────
 const EMBER_FRAG = `
   uniform float time;
   uniform float uOpacity;
@@ -20,12 +19,12 @@ const EMBER_FRAG = `
 
     float flicker = sin(time * 3.0 + gl_FragCoord.x * 0.1 + gl_FragCoord.y * 0.07) * 0.3 + 0.7;
 
-    // Warm amber from palette
-    vec3 amber = vec3(0.83, 0.58, 0.23);
-    vec3 gold  = vec3(0.77, 0.64, 0.40);
-    vec3 col = mix(amber, gold, alpha * 0.5);
+    // Hot orange/amber embers
+    vec3 orange = vec3(1.0, 0.42, 0.0);   // #FF6B00
+    vec3 amber  = vec3(1.0, 0.65, 0.0);   // #FFA500
+    vec3 col = mix(orange, amber, alpha * 0.5);
 
-    gl_FragColor = vec4(col, alpha * flicker * 0.5 * uOpacity);
+    gl_FragColor = vec4(col * 1.2, alpha * flicker * 0.6 * uOpacity);
   }
 `
 
@@ -39,12 +38,12 @@ const EMBER_VERT = `
     pos.z += cos(time * 0.4 + phase * 9.42) * 0.12;
 
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-    gl_PointSize = (2.0 + phase * 2.5) * (1.0 / -mvPosition.z);
+    gl_PointSize = (2.5 + phase * 3.0) * (1.0 / -mvPosition.z);
     gl_Position = projectionMatrix * mvPosition;
   }
 `
 
-// ── Firefly shader -- pulsing wandering golden orbs ─────────────────────
+// ── Firefly shader -- pulsing wandering orange orbs ─────────────────────
 const FIREFLY_FRAG = `
   uniform float time;
   uniform float uOpacity;
@@ -60,11 +59,11 @@ const FIREFLY_FRAG = `
     float pulse = sin(time * 1.5 + seed * 6.28) * 0.5 + 0.5;
     pulse = pulse * pulse;
 
-    vec3 gold = vec3(0.77, 0.64, 0.40);
-    vec3 amber = vec3(0.83, 0.58, 0.23);
-    vec3 col = mix(amber, gold, pulse);
+    vec3 orange = vec3(1.0, 0.42, 0.0);
+    vec3 amber  = vec3(1.0, 0.65, 0.0);
+    vec3 col = mix(orange, amber, pulse);
 
-    gl_FragColor = vec4(col * 1.3, alpha * pulse * 0.7 * uOpacity);
+    gl_FragColor = vec4(col * 1.5, alpha * pulse * 0.7 * uOpacity);
   }
 `
 
@@ -81,42 +80,24 @@ const FIREFLY_VERT = `
     pos.z += cos(t * 0.6 + phase * 10.14) * 0.35;
 
     vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-    gl_PointSize = (4.0 + phase * 3.0) * (1.0 / -mvPosition.z);
+    gl_PointSize = (4.5 + phase * 3.5) * (1.0 / -mvPosition.z);
     gl_Position = projectionMatrix * mvPosition;
   }
 `
 
 export default function Particles({ isMobile = false, scrollRef }) {
-  const dustRef = useRef()
   const emberRef = useRef()
   const fireflyRef = useRef()
   const emberMat = useRef()
   const fireflyMat = useRef()
 
-  const dustCount = isMobile ? 600 : DUST_COUNT
-  const emberCount = isMobile ? 200 : EMBER_COUNT
-  const fireflyCount = isMobile ? 30 : FIREFLY_COUNT
+  const emberCount = isMobile ? 300 : EMBER_COUNT
+  const fireflyCount = isMobile ? 40 : FIREFLY_COUNT
 
   const {
-    dustPositions, dustVelocities,
     emberPositions, emberVelocities, emberPhases,
     fireflyPositions, fireflyPhases, fireflySpeeds,
   } = useMemo(() => {
-    // Dust particles -- tiny, drifting, subtle
-    const dustPositions = new Float32Array(dustCount * 3)
-    const dustVelocities = new Float32Array(dustCount * 3)
-
-    for (let i = 0; i < dustCount; i++) {
-      dustPositions[i * 3]     = (Math.random() - 0.5) * 60
-      dustPositions[i * 3 + 1] = Math.random() * 25 + 0.3
-      dustPositions[i * 3 + 2] = (Math.random() - 0.5) * 60
-
-      const speedMult = 0.3 + Math.random() * 1.5
-      dustVelocities[i * 3]     = (Math.random() - 0.5) * 0.003 * speedMult
-      dustVelocities[i * 3 + 1] = (Math.random() * 0.003 + 0.0003) * speedMult
-      dustVelocities[i * 3 + 2] = (Math.random() - 0.5) * 0.003 * speedMult
-    }
-
     // Embers
     const emberPositions = new Float32Array(emberCount * 3)
     const emberVelocities = new Float32Array(emberCount * 3)
@@ -149,29 +130,13 @@ export default function Particles({ isMobile = false, scrollRef }) {
     }
 
     return {
-      dustPositions, dustVelocities,
       emberPositions, emberVelocities, emberPhases,
       fireflyPositions, fireflyPhases, fireflySpeeds,
     }
-  }, [dustCount, emberCount, fireflyCount])
+  }, [emberCount, fireflyCount])
 
-  // Drift dust and embers
+  // Drift embers upward
   useFrame(() => {
-    if (dustRef.current) {
-      const pos = dustRef.current.geometry.attributes.position.array
-      for (let i = 0; i < dustCount; i++) {
-        pos[i * 3]     += dustVelocities[i * 3]
-        pos[i * 3 + 1] += dustVelocities[i * 3 + 1]
-        pos[i * 3 + 2] += dustVelocities[i * 3 + 2]
-        if (pos[i * 3 + 1] > 28) {
-          pos[i * 3 + 1] = 0.3
-          pos[i * 3]     = (Math.random() - 0.5) * 60
-          pos[i * 3 + 2] = (Math.random() - 0.5) * 60
-        }
-      }
-      dustRef.current.geometry.attributes.position.needsUpdate = true
-    }
-
     if (emberRef.current) {
       const pos = emberRef.current.geometry.attributes.position.array
       for (let i = 0; i < emberCount; i++) {
@@ -206,33 +171,9 @@ export default function Particles({ isMobile = false, scrollRef }) {
     }
   })
 
-  // Dust color transitions from cool to warm based on scroll
-  const dustColor = useMemo(() => new THREE.Color('#C4A265'), [])
-
   return (
     <>
-      {/* Dust particles -- tiny warm dots */}
-      <points ref={dustRef} renderOrder={-2}>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            array={dustPositions}
-            count={dustCount}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        <pointsMaterial
-          color={dustColor}
-          size={0.025}
-          sizeAttenuation
-          transparent
-          opacity={0.3}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-        />
-      </points>
-
-      {/* Rising ember particles */}
+      {/* Rising ember particles -- orange sparks */}
       <points ref={emberRef} renderOrder={-1}>
         <bufferGeometry>
           <bufferAttribute
@@ -262,7 +203,7 @@ export default function Particles({ isMobile = false, scrollRef }) {
         />
       </points>
 
-      {/* Firefly particles -- golden wandering orbs */}
+      {/* Firefly particles -- pulsing orange orbs */}
       <points ref={fireflyRef} renderOrder={-1}>
         <bufferGeometry>
           <bufferAttribute
