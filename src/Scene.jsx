@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import AlamoModel from './components/AlamoModel'
 import GroundPlane from './components/GroundPlane'
 import Particles from './components/Particles'
+import Smoke from './components/Smoke'
 
 // smoothstep easing
 function smoothstep(t) {
@@ -73,7 +74,7 @@ export default function Scene({ scrollRef, isMobile = false }) {
       <AlamoModel scrollRef={scrollRef} />
       <GroundPlane scrollRef={scrollRef} />
       <Particles isMobile={isMobile} scrollRef={scrollRef} />
-      {/* Removed AtmosphericHaze and Smoke -- they were killing the crisp Tron look */}
+      <Smoke isMobile={isMobile} scrollRef={scrollRef} />
 
       <EffectComposer>
         <Bloom
@@ -85,8 +86,8 @@ export default function Scene({ scrollRef, isMobile = false }) {
         />
         <Vignette
           eskil={false}
-          offset={0.2}
-          darkness={0.7}
+          offset={0.3}
+          darkness={0.3}
         />
       </EffectComposer>
     </>

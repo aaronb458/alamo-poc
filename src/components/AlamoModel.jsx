@@ -2,6 +2,7 @@ import { useRef, useMemo, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 // ════════════════════════════════════════════════════════════════════════════
 // WIREFRAME SHADER -- Tron-style glowing wireframe with ORANGE edges + BLUE surfaces
@@ -211,9 +212,8 @@ export default function AlamoModel({ scrollRef }) {
     })
   }, [])
 
-  const { geos, edgeGeos, groupScale, groupOffset } = useMemo(() => {
-    const geos = []
-    const edgeGeos = []
+  const { mergedGeo, mergedEdgeGeo, groupScale, groupOffset } = useMemo(() => {
+    const allGeos = []
 
     // Compute world-space bounding box
     const worldBox = new THREE.Box3()
@@ -240,20 +240,74 @@ export default function AlamoModel({ scrollRef }) {
       -center.z * scale,
     )
 
+    // Collect all mesh geometries, deduplicate by bounding box overlap
+    const meshData = []
     scene.traverse((child) => {
       if (!child.isMesh) return
       const geo = child.geometry.clone()
       child.updateWorldMatrix(true, false)
       geo.applyMatrix4(child.matrixWorld)
       geo.computeVertexNormals()
-      geos.push(geo)
 
-      // Create edge geometry for wireframe lines
-      const edges = new THREE.EdgesGeometry(geo, 15) // 15 degree threshold
-      edgeGeos.push(edges)
+      // Check for near-duplicate bounding boxes
+      const box = new THREE.Box3().setFromBufferAttribute(geo.attributes.position)
+      const boxCenter = new THREE.Vector3()
+      const boxSize = new THREE.Vector3()
+      box.getCenter(boxCenter)
+      box.getSize(boxSize)
+
+      let isDuplicate = false
+      for (const existing of meshData) {
+        const dist = boxCenter.distanceTo(existing.center)
+        const sizeDiff = boxSize.distanceTo(existing.size)
+        // If centers are within 0.1 and sizes within 0.1, skip as duplicate
+        if (dist < 0.1 && sizeDiff < 0.1) {
+          isDuplicate = true
+          break
+        }
+      }
+
+      if (!isDuplicate) {
+        // Ensure geometry is non-indexed for consistent merging
+        const nonIndexedGeo = geo.index ? geo.toNonIndexed() : geo
+
+        // Ensure UVs exist (needed by textured shader)
+        if (!nonIndexedGeo.attributes.uv) {
+          const posCount = nonIndexedGeo.attributes.position.count
+          const uvs = new Float32Array(posCount * 2)
+          for (let j = 0; j < posCount; j++) {
+            uvs[j * 2] = 0
+            uvs[j * 2 + 1] = 0
+          }
+          nonIndexedGeo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2))
+        }
+
+        nonIndexedGeo.computeVertexNormals()
+        meshData.push({ geo: nonIndexedGeo, center: boxCenter, size: boxSize })
+        allGeos.push(nonIndexedGeo)
+      }
     })
 
-    return { geos, edgeGeos, groupScale: scale, groupOffset: offset }
+    // Merge all unique geometries into one
+    const mergedGeo = mergeGeometries(allGeos)
+    if (!mergedGeo) {
+      // Fallback: use first geometry if merge fails
+      console.warn('Geometry merge failed, using first geometry')
+      const fallback = allGeos[0] || new THREE.BufferGeometry()
+      fallback.computeVertexNormals()
+      return {
+        mergedGeo: fallback,
+        mergedEdgeGeo: new THREE.EdgesGeometry(fallback, 15),
+        groupScale: scale,
+        groupOffset: offset,
+      }
+    }
+    mergedGeo.computeVertexNormals()
+
+    // Create single edge geometry from the merged result
+    const mergedEdgeGeo = new THREE.EdgesGeometry(mergedGeo, 15)
+
+    return { mergedGeo, mergedEdgeGeo, groupScale: scale, groupOffset: offset }
   }, [scene])
 
   // Build shader materials
@@ -368,34 +422,30 @@ export default function AlamoModel({ scrollRef }) {
 
   return (
     <group scale={groupScale} position={groupOffset}>
-      {geos.map((geo, i) => (
-        <group key={i}>
-          {/* Layer 1: Blue/cyan data grid surface */}
-          <mesh
-            geometry={geo}
-            material={wireSurfaceMat}
-            renderOrder={2}
-          />
-          {/* Layer 2: ORANGE edge wireframe lines */}
-          <lineSegments
-            geometry={edgeGeos[i]}
-            material={edgeMat}
-            renderOrder={3}
-          />
-          {/* Layer 3: Orange back-face outline hull */}
-          <mesh
-            geometry={geo}
-            material={outlineMat}
-            renderOrder={1}
-          />
-          {/* Layer 4: Textured surface (fades in on scroll) */}
-          <mesh
-            geometry={geo}
-            material={texturedMat}
-            renderOrder={4}
-          />
-        </group>
-      ))}
+      {/* Layer 1: Blue/cyan data grid surface */}
+      <mesh
+        geometry={mergedGeo}
+        material={wireSurfaceMat}
+        renderOrder={2}
+      />
+      {/* Layer 2: ORANGE edge wireframe lines */}
+      <lineSegments
+        geometry={mergedEdgeGeo}
+        material={edgeMat}
+        renderOrder={3}
+      />
+      {/* Layer 3: Orange back-face outline hull */}
+      <mesh
+        geometry={mergedGeo}
+        material={outlineMat}
+        renderOrder={1}
+      />
+      {/* Layer 4: Textured surface (fades in on scroll) */}
+      <mesh
+        geometry={mergedGeo}
+        material={texturedMat}
+        renderOrder={4}
+      />
     </group>
   )
 }

@@ -5,7 +5,7 @@ import * as THREE from 'three'
 // Particle-based volumetric smoke using noise-driven billboards
 // Warm brown/amber tones (#3A2210) drifting left-to-right + rising
 
-const SMOKE_COUNT = 40
+const SMOKE_COUNT = 18
 
 const SMOKE_VERT = `
   attribute float size;
@@ -20,11 +20,11 @@ const SMOKE_VERT = `
     vPhase = phase;
 
     vec3 pos = position;
-    // Drift left to right + slight rise
+    // Slow drift left to right + slight rise
     float t = time * speed;
-    pos.x += t * 0.8 + sin(t * 0.3 + phase * 6.28) * 1.5;
-    pos.y += t * 0.15 + sin(t * 0.2 + phase * 4.0) * 0.4;
-    pos.z += sin(t * 0.15 + phase * 8.0) * 0.8;
+    pos.x += t * 0.3 + sin(t * 0.15 + phase * 6.28) * 0.8;
+    pos.y += t * 0.06 + sin(t * 0.1 + phase * 4.0) * 0.2;
+    pos.z += sin(t * 0.08 + phase * 8.0) * 0.4;
 
     // Wrap around when drifted too far right
     float wrapX = 35.0;
@@ -78,7 +78,7 @@ const SMOKE_FRAG = `
     float wisp = n * 0.6 + n2 * 0.4;
     wisp = smoothstep(0.25, 0.7, wisp);
 
-    float alpha = circle * wisp * vAlpha * 0.12;
+    float alpha = circle * wisp * vAlpha * 0.06;
     if (alpha < 0.002) discard;
 
     // Warm brown/amber smoke color
@@ -92,7 +92,7 @@ const SMOKE_FRAG = `
 export default function Smoke({ isMobile = false, scrollRef }) {
   const matRef = useRef()
 
-  const count = isMobile ? 15 : SMOKE_COUNT
+  const count = isMobile ? 8 : SMOKE_COUNT
 
   const { positions, sizes, phases, speeds } = useMemo(() => {
     const positions = new Float32Array(count * 3)
@@ -108,7 +108,7 @@ export default function Smoke({ isMobile = false, scrollRef }) {
 
       sizes[i] = 4.0 + Math.random() * 8.0
       phases[i] = Math.random()
-      speeds[i] = 0.15 + Math.random() * 0.35
+      speeds[i] = 0.08 + Math.random() * 0.15
     }
 
     return { positions, sizes, phases, speeds }

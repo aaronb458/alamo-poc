@@ -330,15 +330,6 @@ export default function App() {
         <TextOverlay scrollProgress={scrollProgress} />
       </div>
 
-      {/* Hero logo -- faint orientation before scrolling */}
-      <div
-        className="hero-logo-container"
-        style={{ opacity: scrollProgress < 0.02 ? 1 : Math.max(0, 1 - (scrollProgress - 0.02) / 0.04) }}
-      >
-        <img src="/logo.png" alt="Remember the Alamo" className="hero-logo-image" />
-        <div className="hero-scroll-chevron" />
-      </div>
-
       {/* Scroll indicator */}
       <div
         className="scroll-hint"
