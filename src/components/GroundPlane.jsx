@@ -24,40 +24,40 @@ const GRID_FRAG = `
   varying float vDist;
 
   void main() {
-    // Grid lines on xz plane
+    // Grid lines on xz plane -- Tron-style retro-futuristic
     float gridSize = 1.0;
     vec2 g = fract(vWorldPos.xz / gridSize);
-    float lw = 0.025;
+    float lw = 0.035;
     float gx = step(1.0 - lw, g.x) + step(g.x, lw);
     float gy = step(1.0 - lw, g.y) + step(g.y, lw);
     float grid = clamp(gx + gy, 0.0, 1.0);
 
-    // Section grid (5m)
+    // Section grid (5m) -- brighter major grid lines
     float sectionSize = 5.0;
     vec2 sg = fract(vWorldPos.xz / sectionSize);
-    float slw = 0.012;
+    float slw = 0.018;
     float sgx = step(1.0 - slw, sg.x) + step(sg.x, slw);
     float sgy = step(1.0 - slw, sg.y) + step(sg.y, slw);
     float sectionGrid = clamp(sgx + sgy, 0.0, 1.0);
 
-    // Distance fade
-    float fadeStart = 18.0;
-    float fadeEnd   = 50.0;
+    // Distance fade -- recede into darkness
+    float fadeStart = 20.0;
+    float fadeEnd   = 55.0;
     float fade = 1.0 - smoothstep(fadeStart, fadeEnd, vDist);
 
-    // Pulse ripple
-    float ripple = sin(vDist * 0.35 - time * 1.2) * 0.04 + 0.96;
+    // Pulse ripple -- subtle energy flowing through the grid
+    float ripple = sin(vDist * 0.35 - time * 1.2) * 0.06 + 0.94;
 
-    // Warm amber/gold colors instead of cyan
-    vec3 gridColor    = vec3(0.83, 0.58, 0.23);  // #D4943A
-    vec3 sectionColor = vec3(0.55, 0.38, 0.15);  // darker amber
+    // Warm amber/gold -- #C4A265 palette
+    vec3 gridColor    = vec3(0.77, 0.64, 0.40);  // #C4A265 gold
+    vec3 sectionColor = vec3(0.83, 0.58, 0.23);  // #D4943A amber (brighter for major lines)
 
     vec3 col = vec3(0.0);
-    col = mix(col, sectionColor, sectionGrid * 0.5);
-    col = mix(col, gridColor,    grid * 0.8);
+    col = mix(col, gridColor,    grid * 1.0);
+    col = mix(col, sectionColor, sectionGrid * 1.2);
     col *= ripple;
 
-    float alpha = (grid * 0.6 + sectionGrid * 0.3) * fade * uGridOpacity;
+    float alpha = (grid * 0.45 + sectionGrid * 0.55) * fade * uGridOpacity;
     if (alpha < 0.005) discard;
 
     gl_FragColor = vec4(col, alpha);

@@ -76,8 +76,8 @@ const EDGE_FRAG = `
   uniform vec3 uLineColor;
 
   void main() {
-    float pulse = sin(time * 1.5) * 0.12 + 0.88;
-    vec3 col = uLineColor * 1.6 * pulse;
+    float pulse = sin(time * 1.5) * 0.10 + 0.90;
+    vec3 col = uLineColor * 1.2 * pulse;
     gl_FragColor = vec4(col, uWireframeOpacity * 0.85);
   }
 `

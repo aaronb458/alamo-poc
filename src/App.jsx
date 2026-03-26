@@ -147,7 +147,6 @@ function TextOverlay({ scrollProgress }) {
           transform: slideUp(phase1),
         }}
       >
-        <div className="text-backdrop" />
         <img src="/logo.png" alt="Remember the Alamo" className="logo-image" />
         <p className="title-subtitle">Don't Sharia My Texas</p>
         <div className="title-divider" />
@@ -162,7 +161,6 @@ function TextOverlay({ scrollProgress }) {
           transform: slideUp(phase2),
         }}
       >
-        <div className="text-backdrop" />
         <p className="statement-text">The Alamo stood for freedom.</p>
       </div>
 
@@ -174,7 +172,6 @@ function TextOverlay({ scrollProgress }) {
           transform: slideUp(phase3),
         }}
       >
-        <div className="text-backdrop" />
         <p className="mission-text">
           A documentary exposing how foreign law<br />
           is quietly replacing American justice.
@@ -189,7 +186,6 @@ function TextOverlay({ scrollProgress }) {
           transform: slideUp(phase4),
         }}
       >
-        <div className="text-backdrop" />
         <p className="question-text">What are we standing for now?</p>
       </div>
 
@@ -201,7 +197,6 @@ function TextOverlay({ scrollProgress }) {
           transform: slideUp(phase5),
         }}
       >
-        <div className="text-backdrop" />
         <p className="release-year">Coming 2026</p>
         <div className="release-divider" />
         <p className="director-credit">
@@ -219,7 +214,6 @@ function TextOverlay({ scrollProgress }) {
           transform: slideUp(phase6, 30),
         }}
       >
-        <div className="text-backdrop text-backdrop-cta" />
         <img src="/poster.jpg" alt="Remember the Alamo Poster" className="poster-image" />
         <p className="cta-tagline">The truth does not need your permission.</p>
         <a href="#watch" className="cta-button">
@@ -334,6 +328,15 @@ export default function App() {
         }}
       >
         <TextOverlay scrollProgress={scrollProgress} />
+      </div>
+
+      {/* Hero logo -- faint orientation before scrolling */}
+      <div
+        className="hero-logo-container"
+        style={{ opacity: scrollProgress < 0.02 ? 1 : Math.max(0, 1 - (scrollProgress - 0.02) / 0.04) }}
+      >
+        <img src="/logo.png" alt="Remember the Alamo" className="hero-logo-image" />
+        <div className="hero-scroll-chevron" />
       </div>
 
       {/* Scroll indicator */}

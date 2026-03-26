@@ -6,6 +6,7 @@ import AlamoModel from './components/AlamoModel'
 import GroundPlane from './components/GroundPlane'
 import Particles from './components/Particles'
 import AtmosphericHaze from './components/AtmosphericHaze'
+import Smoke from './components/Smoke'
 
 // smoothstep easing
 function smoothstep(t) {
@@ -75,14 +76,15 @@ export default function Scene({ scrollRef, isMobile = false }) {
       <GroundPlane scrollRef={scrollRef} />
       <Particles isMobile={isMobile} scrollRef={scrollRef} />
       <AtmosphericHaze isMobile={isMobile} />
+      <Smoke isMobile={isMobile} scrollRef={scrollRef} />
 
       <EffectComposer>
         <Bloom
-          intensity={isMobile ? 1.8 : 3.5}
-          luminanceThreshold={isMobile ? 0.12 : 0.08}
-          luminanceSmoothing={0.5}
+          intensity={isMobile ? 1.0 : 1.8}
+          luminanceThreshold={isMobile ? 0.18 : 0.15}
+          luminanceSmoothing={0.6}
           mipmapBlur={!isMobile}
-          radius={isMobile ? 0.5 : 0.85}
+          radius={isMobile ? 0.4 : 0.6}
         />
         <Vignette
           eskil={false}
