@@ -23,7 +23,7 @@ const WIREFRAME_FRAG = `
   void main() {
     float pulse = sin(time * 1.5) * 0.12 + 0.88;
     // Bright cyan with high intensity for bloom pickup
-    vec3 cyan = vec3(0.0, 0.75, 1.0) * 2.5 * pulse;
+    vec3 cyan = vec3(0.0, 0.75, 1.0) * 1.1 * pulse;
     gl_FragColor = vec4(cyan, uWireframeOpacity * 0.85);
   }
 `
@@ -43,7 +43,7 @@ const EDGE_FRAG = `
   void main() {
     float pulse = sin(time * 1.5) * 0.08 + 0.92;
     // Very bright orange with high intensity for strong bloom pickup
-    vec3 col = uLineColor * 4.5 * pulse;
+    vec3 col = uLineColor * 2.2 * pulse;
     gl_FragColor = vec4(col, uWireframeOpacity * 0.95);
   }
 `
@@ -368,7 +368,7 @@ export default function AlamoModel({ scrollRef }) {
     wireframeMat.visible = wireOpacity > 0.01
     edgeMat.visible = wireOpacity > 0.01
     outlineMat.visible = wireOpacity > 0.01
-    texturedMat.visible = wireOpacity > 0.01
+    texturedMat.visible = texOpacity > 0.01
   })
 
   return (

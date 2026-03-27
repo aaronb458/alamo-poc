@@ -66,8 +66,8 @@ function LoadingScreen({ progress }) {
 
 // ── Background Layer ────────────────────────────────────────────────────
 function BackgroundLayer({ scrollProgress }) {
-  // Dark at start, transition to golden hour landscape AFTER wireframe phase
-  const bgOpacity = Math.max(0, Math.min(1, (scrollProgress - 0.50) / 0.35))
+  // Dark at start, transition to golden hour landscape during wireframe-to-texture phase
+  const bgOpacity = Math.max(0, Math.min(1, (scrollProgress - 0.40) / 0.30))
 
   return (
     <div className="bg-layer">
@@ -125,9 +125,9 @@ function TextOverlay({ scrollProgress }) {
   const phase4 = phaseOpacity(p, 0.44, 0.56)
   // Phase 5: Release info (0.58 - 0.70)
   const phase5 = phaseOpacity(p, 0.58, 0.70)
-  // Phase 6: Poster + CTA -- fades in and STAYS
-  const phase6 = p < 0.73 ? 0
-    : p < 0.82 ? (p - 0.73) / 0.09
+  // Phase 6: Poster + CTA -- fades in and STAYS (starts at 0.65 to overlap with textured model)
+  const phase6 = p < 0.65 ? 0
+    : p < 0.76 ? (p - 0.65) / 0.11
     : 1
 
   const slideUp = (phase, px = 20) => {
