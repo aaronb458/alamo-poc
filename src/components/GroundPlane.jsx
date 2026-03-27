@@ -23,18 +23,18 @@ const GRID_FRAG = `
   varying float vDist;
 
   void main() {
-    // Grid lines on xz plane -- Tron-style
-    float gridSize = 1.0;
+    // Primary grid lines on xz plane -- tight, dense Tron-style
+    float gridSize = 0.5;
     vec2 g = fract(vWorldPos.xz / gridSize);
-    float lw = 0.025;
+    float lw = 0.02;
     float gx = step(1.0 - lw, g.x) + step(g.x, lw);
     float gy = step(1.0 - lw, g.y) + step(g.y, lw);
     float grid = clamp(gx + gy, 0.0, 1.0);
 
-    // Section grid (5m) -- brighter major grid lines
-    float sectionSize = 5.0;
+    // Section grid (2.5m) -- brighter major grid lines
+    float sectionSize = 2.5;
     vec2 sg = fract(vWorldPos.xz / sectionSize);
-    float slw = 0.015;
+    float slw = 0.012;
     float sgx = step(1.0 - slw, sg.x) + step(sg.x, slw);
     float sgy = step(1.0 - slw, sg.y) + step(sg.y, slw);
     float sectionGrid = clamp(sgx + sgy, 0.0, 1.0);

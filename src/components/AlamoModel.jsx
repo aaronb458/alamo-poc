@@ -43,8 +43,8 @@ const WIRE_SURFACE_FRAG = `
     vec3 blue    = vec3(0.0, 0.53, 1.0);   // #0088FF
     vec3 deepBlue = vec3(0.0, 0.15, 0.35);
 
-    // Create a data grid pattern using world position
-    float gridScale = 2.0;
+    // Primary data grid -- tight, dense lines covering every surface
+    float gridScale = 6.0;
     vec2 grid1 = abs(fract(vWorldPosition.xz * gridScale) - 0.5);
     vec2 grid2 = abs(fract(vWorldPosition.xy * gridScale) - 0.5);
     vec2 grid3 = abs(fract(vWorldPosition.yz * gridScale) - 0.5);
@@ -57,16 +57,31 @@ const WIRE_SURFACE_FRAG = `
     float gy = min(grid2.x, grid2.y) * blending.z;
     float gz = min(grid3.x, grid3.y) * blending.x;
     float gridVal = gx + gy + gz;
-    float gridLine = 1.0 - smoothstep(0.0, 0.06, gridVal);
+    float gridLine = 1.0 - smoothstep(0.0, 0.02, gridVal);
+
+    // Secondary finer grid -- higher frequency, lower opacity for dense data-grid look
+    float fineScale = 18.0;
+    vec2 fg1 = abs(fract(vWorldPosition.xz * fineScale) - 0.5);
+    vec2 fg2 = abs(fract(vWorldPosition.xy * fineScale) - 0.5);
+    vec2 fg3 = abs(fract(vWorldPosition.yz * fineScale) - 0.5);
+
+    float fgx = min(fg1.x, fg1.y) * blending.y;
+    float fgy = min(fg2.x, fg2.y) * blending.z;
+    float fgz = min(fg3.x, fg3.y) * blending.x;
+    float fineGridVal = fgx + fgy + fgz;
+    float fineGridLine = 1.0 - smoothstep(0.0, 0.015, fineGridVal);
+
+    // Combine primary and fine grid
+    gridLine = max(gridLine, fineGridLine * 0.45);
 
     // Scanning line effect
     float scanLine = sin(vWorldPosition.y * 8.0 - time * 2.0) * 0.5 + 0.5;
     scanLine = pow(scanLine, 8.0) * 0.3;
 
-    // Base surface color -- deep blue with grid overlay
-    vec3 col = deepBlue * 0.3;
-    col += cyan * gridLine * 0.8;
-    col += blue * scanLine * 0.2;
+    // Base surface color -- deep blue with bright cyan grid overlay
+    vec3 col = deepBlue * 0.15;
+    col += cyan * gridLine * 1.2;
+    col += blue * scanLine * 0.25;
 
     // Fresnel edge glow in orange/amber (transition color between surface and edges)
     vec3 amber = vec3(1.0, 0.42, 0.0);  // #FF6B00
@@ -76,7 +91,7 @@ const WIRE_SURFACE_FRAG = `
     float pulse = sin(time * 1.2) * 0.1 + 0.9;
     col *= pulse;
 
-    float alpha = (0.25 + gridLine * 0.6 + fresnelEdge * 0.5) * uWireframeOpacity;
+    float alpha = (0.2 + gridLine * 0.75 + fresnelEdge * 0.5) * uWireframeOpacity;
 
     gl_FragColor = vec4(col, alpha);
   }
@@ -96,8 +111,8 @@ const EDGE_FRAG = `
 
   void main() {
     float pulse = sin(time * 1.5) * 0.08 + 0.92;
-    // Bright orange with extra intensity for bloom to catch
-    vec3 col = uLineColor * 3.0 * pulse;
+    // Very bright orange with high intensity for strong bloom pickup
+    vec3 col = uLineColor * 4.5 * pulse;
     gl_FragColor = vec4(col, uWireframeOpacity * 0.95);
   }
 `
