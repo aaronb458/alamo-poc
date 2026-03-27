@@ -4,100 +4,31 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
-// ════════════════════════════════════════════════════════════════════════════
-// WIREFRAME SHADER -- Tron-style glowing wireframe with ORANGE edges + BLUE surfaces
-// Orange/amber glowing edges, blue/cyan data grid on faces, pure black bg
-// ════════════════════════════════════════════════════════════════════════════
+// ============================================================================
+// WIREFRAME SHADER -- True mesh wireframe with CYAN triangles + ORANGE edges
+// Cyan wireframe shows every triangle edge, orange on hard structural edges
+// ============================================================================
 
-// Surface shader -- blue/cyan data grid texture on faces
-const WIRE_SURFACE_VERT = `
-  varying vec3 vNormal;
-  varying vec3 vViewPosition;
-  varying vec3 vWorldPosition;
-
+// Wireframe shader -- cyan lines from WireframeGeometry (every triangle edge)
+const WIREFRAME_VERT = `
   void main() {
-    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    vViewPosition = -mvPosition.xyz;
-    vNormal = normalMatrix * normal;
-    vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
-    gl_Position = projectionMatrix * mvPosition;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `
 
-const WIRE_SURFACE_FRAG = `
+const WIREFRAME_FRAG = `
   uniform float time;
   uniform float uWireframeOpacity;
 
-  varying vec3 vNormal;
-  varying vec3 vViewPosition;
-  varying vec3 vWorldPosition;
-
   void main() {
-    vec3 viewDir = normalize(vViewPosition);
-    vec3 n = normalize(vNormal);
-    float fresnel = 1.0 - abs(dot(n, viewDir));
-    float fresnelEdge = pow(fresnel, 2.5);
-
-    // Blue/cyan data grid on surfaces
-    vec3 cyan    = vec3(0.0, 0.75, 1.0);   // #00BFFF
-    vec3 blue    = vec3(0.0, 0.53, 1.0);   // #0088FF
-    vec3 deepBlue = vec3(0.0, 0.15, 0.35);
-
-    // Primary data grid -- tight, dense lines covering every surface
-    float gridScale = 6.0;
-    vec2 grid1 = abs(fract(vWorldPosition.xz * gridScale) - 0.5);
-    vec2 grid2 = abs(fract(vWorldPosition.xy * gridScale) - 0.5);
-    vec2 grid3 = abs(fract(vWorldPosition.yz * gridScale) - 0.5);
-
-    // Triplanar blending for grid
-    vec3 blending = abs(n);
-    blending = normalize(max(blending, 0.00001));
-
-    float gx = min(grid1.x, grid1.y) * blending.y;
-    float gy = min(grid2.x, grid2.y) * blending.z;
-    float gz = min(grid3.x, grid3.y) * blending.x;
-    float gridVal = gx + gy + gz;
-    float gridLine = 1.0 - smoothstep(0.0, 0.02, gridVal);
-
-    // Secondary finer grid -- higher frequency, lower opacity for dense data-grid look
-    float fineScale = 18.0;
-    vec2 fg1 = abs(fract(vWorldPosition.xz * fineScale) - 0.5);
-    vec2 fg2 = abs(fract(vWorldPosition.xy * fineScale) - 0.5);
-    vec2 fg3 = abs(fract(vWorldPosition.yz * fineScale) - 0.5);
-
-    float fgx = min(fg1.x, fg1.y) * blending.y;
-    float fgy = min(fg2.x, fg2.y) * blending.z;
-    float fgz = min(fg3.x, fg3.y) * blending.x;
-    float fineGridVal = fgx + fgy + fgz;
-    float fineGridLine = 1.0 - smoothstep(0.0, 0.015, fineGridVal);
-
-    // Combine primary and fine grid
-    gridLine = max(gridLine, fineGridLine * 0.45);
-
-    // Scanning line effect
-    float scanLine = sin(vWorldPosition.y * 8.0 - time * 2.0) * 0.5 + 0.5;
-    scanLine = pow(scanLine, 8.0) * 0.3;
-
-    // Base surface color -- deep blue with bright cyan grid overlay
-    vec3 col = deepBlue * 0.15;
-    col += cyan * gridLine * 1.2;
-    col += blue * scanLine * 0.25;
-
-    // Fresnel edge glow in orange/amber (transition color between surface and edges)
-    vec3 amber = vec3(1.0, 0.42, 0.0);  // #FF6B00
-    col += amber * fresnelEdge * 1.0;
-
-    // Subtle pulse
-    float pulse = sin(time * 1.2) * 0.1 + 0.9;
-    col *= pulse;
-
-    float alpha = (0.2 + gridLine * 0.75 + fresnelEdge * 0.5) * uWireframeOpacity;
-
-    gl_FragColor = vec4(col, alpha);
+    float pulse = sin(time * 1.5) * 0.12 + 0.88;
+    // Bright cyan with high intensity for bloom pickup
+    vec3 cyan = vec3(0.0, 0.75, 1.0) * 2.5 * pulse;
+    gl_FragColor = vec4(cyan, uWireframeOpacity * 0.85);
   }
 `
 
-// Edge line shader -- BRIGHT ORANGE/AMBER glowing wireframe lines
+// Edge line shader -- BRIGHT ORANGE/AMBER glowing structural edges
 const EDGE_VERT = `
   void main() {
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
@@ -208,7 +139,7 @@ const TEXTURED_FRAG = `
   }
 `
 
-// ════════════════════════════════════════════════════════════════════════════
+// ============================================================================
 
 export default function AlamoModel({ scrollRef }) {
   const { scene } = useGLTF('/alamo-v2.glb')
@@ -227,7 +158,7 @@ export default function AlamoModel({ scrollRef }) {
     })
   }, [])
 
-  const { mergedGeo, mergedEdgeGeo, groupScale, groupOffset } = useMemo(() => {
+  const { mergedGeo, mergedWireGeo, mergedEdgeGeo, groupScale, groupOffset } = useMemo(() => {
     const allGeos = []
 
     // Compute world-space bounding box
@@ -312,6 +243,7 @@ export default function AlamoModel({ scrollRef }) {
       fallback.computeVertexNormals()
       return {
         mergedGeo: fallback,
+        mergedWireGeo: new THREE.WireframeGeometry(fallback),
         mergedEdgeGeo: new THREE.EdgesGeometry(fallback, 15),
         groupScale: scale,
         groupOffset: offset,
@@ -319,32 +251,36 @@ export default function AlamoModel({ scrollRef }) {
     }
     mergedGeo.computeVertexNormals()
 
-    // Create single edge geometry from the merged result
+    // WireframeGeometry -- every triangle edge of the actual mesh
+    const mergedWireGeo = new THREE.WireframeGeometry(mergedGeo)
+
+    // EdgesGeometry -- hard structural edges only (15 degree threshold)
     const mergedEdgeGeo = new THREE.EdgesGeometry(mergedGeo, 15)
 
-    return { mergedGeo, mergedEdgeGeo, groupScale: scale, groupOffset: offset }
+    return { mergedGeo, mergedWireGeo, mergedEdgeGeo, groupScale: scale, groupOffset: offset }
   }, [scene])
 
   // Build shader materials
   const {
-    wireSurfaceMat, edgeMat, outlineMat, texturedMat
+    wireframeMat, edgeMat, outlineMat, texturedMat
   } = useMemo(() => {
-    // BRIGHT ORANGE for wireframe edges
+    // BRIGHT ORANGE for structural edges
     const lineColor = new THREE.Color(0xFF6B00)
 
-    const wireSurfaceMat = new THREE.ShaderMaterial({
-      vertexShader: WIRE_SURFACE_VERT,
-      fragmentShader: WIRE_SURFACE_FRAG,
+    // Cyan wireframe material -- every triangle edge
+    const wireframeMat = new THREE.ShaderMaterial({
+      vertexShader: WIREFRAME_VERT,
+      fragmentShader: WIREFRAME_FRAG,
       uniforms: {
         time: { value: 0 },
         uWireframeOpacity: { value: 1.0 },
       },
       transparent: true,
-      side: THREE.FrontSide,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     })
 
+    // Orange structural edge material
     const edgeMat = new THREE.ShaderMaterial({
       vertexShader: EDGE_VERT,
       fragmentShader: EDGE_FRAG,
@@ -393,8 +329,8 @@ export default function AlamoModel({ scrollRef }) {
       depthWrite: true,
     })
 
-    materialsRef.current = [wireSurfaceMat, edgeMat, outlineMat, texturedMat]
-    return { wireSurfaceMat, edgeMat, outlineMat, texturedMat }
+    materialsRef.current = [wireframeMat, edgeMat, outlineMat, texturedMat]
+    return { wireframeMat, edgeMat, outlineMat, texturedMat }
   }, [])
 
   // Drive uniforms per frame
@@ -423,27 +359,27 @@ export default function AlamoModel({ scrollRef }) {
       m.uniforms.time.value = t
     })
 
-    wireSurfaceMat.uniforms.uWireframeOpacity.value = wireOpacity
+    wireframeMat.uniforms.uWireframeOpacity.value = wireOpacity
     edgeMat.uniforms.uWireframeOpacity.value = wireOpacity
     outlineMat.uniforms.uWireframeOpacity.value = wireOpacity
     texturedMat.uniforms.uTextureOpacity.value = texOpacity
 
     // Toggle visibility for performance
-    wireSurfaceMat.visible = wireOpacity > 0.01
+    wireframeMat.visible = wireOpacity > 0.01
     edgeMat.visible = wireOpacity > 0.01
     outlineMat.visible = wireOpacity > 0.01
-    texturedMat.visible = texOpacity > 0.01
+    texturedMat.visible = wireOpacity > 0.01
   })
 
   return (
     <group scale={groupScale} position={groupOffset}>
-      {/* Layer 1: Blue/cyan data grid surface */}
-      <mesh
-        geometry={mergedGeo}
-        material={wireSurfaceMat}
+      {/* Layer 1: Cyan wireframe -- every triangle edge of the actual mesh */}
+      <lineSegments
+        geometry={mergedWireGeo}
+        material={wireframeMat}
         renderOrder={2}
       />
-      {/* Layer 2: ORANGE edge wireframe lines */}
+      {/* Layer 2: ORANGE structural edge lines (hard edges at 15 deg threshold) */}
       <lineSegments
         geometry={mergedEdgeGeo}
         material={edgeMat}
