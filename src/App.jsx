@@ -66,8 +66,8 @@ function LoadingScreen({ progress }) {
 
 // ── Background Layer ────────────────────────────────────────────────────
 function BackgroundLayer({ scrollProgress }) {
-  // Dark at start, transition to golden hour landscape as wireframe fades
-  const bgOpacity = Math.max(0, Math.min(1, (scrollProgress - 0.25) / 0.35))
+  // Dark at start, transition to golden hour landscape AFTER wireframe phase
+  const bgOpacity = Math.max(0, Math.min(1, (scrollProgress - 0.50) / 0.35))
 
   return (
     <div className="bg-layer">
@@ -75,7 +75,7 @@ function BackgroundLayer({ scrollProgress }) {
       <div
         className="bg-image bg-golden-hour"
         style={{
-          opacity: bgOpacity * 0.6,
+          opacity: bgOpacity * 0.35,
           transform: `scale(${1 + scrollProgress * 0.08}) translateY(${-scrollProgress * 3}%)`,
         }}
       />
@@ -115,19 +115,19 @@ function TextOverlay({ scrollProgress }) {
 
   const p = scrollProgress
 
-  // Phase 1: Logo + Title (0.0 - 0.20)
-  const phase1 = phaseOpacity(p, 0.0, 0.20)
-  // Phase 2: Impact statement (0.15 - 0.32)
-  const phase2 = phaseOpacity(p, 0.15, 0.32)
-  // Phase 3: Mission statement (0.27 - 0.44)
-  const phase3 = phaseOpacity(p, 0.27, 0.44)
-  // Phase 4: Question (0.39 - 0.56)
-  const phase4 = phaseOpacity(p, 0.39, 0.56)
-  // Phase 5: Release info (0.51 - 0.68)
-  const phase5 = phaseOpacity(p, 0.51, 0.68)
+  // Phase 1: Logo + Title (0.0 - 0.14)
+  const phase1 = phaseOpacity(p, 0.0, 0.14)
+  // Phase 2: Impact statement (0.16 - 0.28)
+  const phase2 = phaseOpacity(p, 0.16, 0.28)
+  // Phase 3: Mission statement (0.30 - 0.42)
+  const phase3 = phaseOpacity(p, 0.30, 0.42)
+  // Phase 4: Question (0.44 - 0.56)
+  const phase4 = phaseOpacity(p, 0.44, 0.56)
+  // Phase 5: Release info (0.58 - 0.70)
+  const phase5 = phaseOpacity(p, 0.58, 0.70)
   // Phase 6: Poster + CTA -- fades in and STAYS
-  const phase6 = p < 0.63 ? 0
-    : p < 0.72 ? (p - 0.63) / 0.09
+  const phase6 = p < 0.73 ? 0
+    : p < 0.82 ? (p - 0.73) / 0.09
     : 1
 
   const slideUp = (phase, px = 20) => {

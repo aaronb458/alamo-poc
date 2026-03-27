@@ -78,7 +78,7 @@ export default function Scene({ scrollRef, isMobile = false }) {
 
       <EffectComposer>
         <Bloom
-          intensity={isMobile ? 1.5 : 2.5}
+          intensity={isMobile ? 1.5 : 3.5}
           luminanceThreshold={isMobile ? 0.12 : 0.08}
           luminanceSmoothing={0.4}
           mipmapBlur={!isMobile}

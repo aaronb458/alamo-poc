@@ -65,18 +65,18 @@ const WIRE_SURFACE_FRAG = `
 
     // Base surface color -- deep blue with grid overlay
     vec3 col = deepBlue * 0.3;
-    col += cyan * gridLine * 0.5;
+    col += cyan * gridLine * 0.8;
     col += blue * scanLine * 0.2;
 
     // Fresnel edge glow in orange/amber (transition color between surface and edges)
     vec3 amber = vec3(1.0, 0.42, 0.0);  // #FF6B00
-    col += amber * fresnelEdge * 0.6;
+    col += amber * fresnelEdge * 1.0;
 
     // Subtle pulse
     float pulse = sin(time * 1.2) * 0.1 + 0.9;
     col *= pulse;
 
-    float alpha = (0.15 + gridLine * 0.35 + fresnelEdge * 0.5) * uWireframeOpacity;
+    float alpha = (0.25 + gridLine * 0.6 + fresnelEdge * 0.5) * uWireframeOpacity;
 
     gl_FragColor = vec4(col, alpha);
   }
@@ -97,7 +97,7 @@ const EDGE_FRAG = `
   void main() {
     float pulse = sin(time * 1.5) * 0.08 + 0.92;
     // Bright orange with extra intensity for bloom to catch
-    vec3 col = uLineColor * 1.8 * pulse;
+    vec3 col = uLineColor * 3.0 * pulse;
     gl_FragColor = vec4(col, uWireframeOpacity * 0.95);
   }
 `
@@ -388,10 +388,10 @@ export default function AlamoModel({ scrollRef }) {
     const scrollP = scrollRef.current
 
     // Wireframe-to-texture transition mapped to scroll
-    // Wireframe fully visible at 0%, starts fading at 20%, gone by 55%
-    // Texture starts at 20%, fully visible by 55%
-    const transitionStart = 0.20
-    const transitionEnd = 0.55
+    // Wireframe fully visible at 0%, starts fading at 40%, gone by 70%
+    // Texture starts at 40%, fully visible by 70%
+    const transitionStart = 0.40
+    const transitionEnd = 0.70
     const rawT = Math.max(0, Math.min(1, (scrollP - transitionStart) / (transitionEnd - transitionStart)))
     // Smooth it
     const transition = rawT * rawT * (3 - 2 * rawT)
