@@ -24,7 +24,7 @@ const WIREFRAME_FRAG = `
     float pulse = sin(time * 1.5) * 0.12 + 0.88;
     // Bright cyan with high intensity for bloom pickup
     vec3 cyan = vec3(0.0, 0.75, 1.0) * 1.1 * pulse;
-    gl_FragColor = vec4(cyan, uWireframeOpacity * 0.85);
+    gl_FragColor = vec4(cyan, uWireframeOpacity * 0.7);
   }
 `
 
@@ -66,7 +66,7 @@ const OUTLINE_FRAG = `
     float pulse = sin(time * 0.8) * 0.06 + 0.94;
     vec3 orange = vec3(1.0, 0.42, 0.0);   // #FF6B00
     vec3 amber  = vec3(1.0, 0.65, 0.0);   // #FFA500
-    vec3 col = mix(orange, amber, 0.3) * 1.4 * pulse;
+    vec3 col = mix(orange, amber, 0.3) * 0.8 * pulse;
     gl_FragColor = vec4(col, uWireframeOpacity * 0.5);
   }
 `
